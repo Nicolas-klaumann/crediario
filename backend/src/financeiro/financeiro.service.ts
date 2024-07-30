@@ -8,15 +8,15 @@ export class FinanceiroService {
       (a, b) => new Date(a.data).getTime() - new Date(b.data).getTime(),
     );
 
+    // inicializa prop para controle da logica
     let tempo = [];
-    let valorFinanciado = 0;
 
     // iterar sobre os contratos e atualizar gradativamente o saldo
     data.contratos.map((contrato) => {
-      // parse em cima da data para nomear o array com o mes da movimentação
+      // parse em cima da data para nomear a posição do array com o mes da movimentação
       const [anoContrato, mesContrato, diaContrato] = contrato.data.split('-');
 
-      // se não existir uma movimentação nesse mes, cria uma, se existir, apenas atualiza o valor
+      // cria ou atualiza o saldo do mes
       if (!tempo[`${mesContrato}/${anoContrato}`]) {
         tempo[`${mesContrato}/${anoContrato}`] = {
           saldoDevedor: contrato.valortotal - contrato.valorentrada,
@@ -26,34 +26,52 @@ export class FinanceiroService {
           contrato.valortotal - contrato.valorentrada;
       }
 
-      valorFinanciado = contrato.valorfinanciado;
+      // prop para controlar o valor financiado nas parcelas
+      let valorFinanciado = contrato.valorfinanciado;
 
       // calculo do pagamanento do contrato
       contrato.parcelas.map((parcela) => {
-        // busca a data que foi pago a parcela
-        if (!parcela.dataultimopagamento) {
-          return;
+        // parse para nomer posicao do array
+        const [anoVencimento, mesVencimento, diaVencimento] =
+          parcela.datavencimento.split('-');
+
+        // se o pagamento for feito em outro mes ou não foi feito o pagamento
+        // apenas guarda o valor financiado restante no mes de vencimento
+        if (
+          !parcela.dataultimopagamento ||
+          new Date(parcela.dataultimopagamento).getMonth() >
+            new Date(parcela.datavencimento).getMonth()
+        ) {
+          if (tempo[`${mesVencimento}/${anoVencimento}`]) {
+            tempo[`${mesVencimento}/${anoVencimento}`].saldoDevedor +=
+              valorFinanciado;
+          } else {
+            tempo[`${mesVencimento}/${anoVencimento}`] = {
+              saldoDevedor: valorFinanciado,
+            };
+          }
+
+          if (!parcela.dataultimopagamento) {
+            return;
+          }
         }
 
+        // parse para nomer posicao do array
         const [anoParcela, mesParcela, diaParcela] =
           parcela.dataultimopagamento.split('-');
 
+        // atualiza valor financiado
+        valorFinanciado -= parcela.totalpago;
+        if (Math.abs(valorFinanciado) < 1e-10) {
+          valorFinanciado = 0;
+        }
+
         // se não existir uma movimentação nesse mes, cria uma, se existir, apenas atualiza o valor
         if (!tempo[`${mesParcela}/${anoParcela}`]) {
-          valorFinanciado -= parcela.totalpago;
-          if (Math.abs(valorFinanciado) < 1e-10) {
-            valorFinanciado = 0;
-          }
-
           tempo[`${mesParcela}/${anoParcela}`] = {
             saldoDevedor: valorFinanciado,
           };
         } else {
-          valorFinanciado -= parcela.totalpago;
-          if (Math.abs(valorFinanciado) < 1e-10) {
-            valorFinanciado = 0;
-          }
-
           tempo[`${mesParcela}/${anoParcela}`].saldoDevedor -=
             parcela.totalpago;
 
