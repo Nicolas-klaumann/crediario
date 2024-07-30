@@ -1,4 +1,4 @@
-import { Controller, Post, Get } from '@nestjs/common';
+import { Controller, Post, Get, Body } from '@nestjs/common';
 import { FinanceiroService } from './financeiro.service';
 
 @Controller()
@@ -7,7 +7,7 @@ export class FinanceiroController {
 
   // busca o mes com o maior valor em aberto
   @Post('/financeiro')
-  getMaiorValorEmAbertoMes(data): string {
+  getMaiorValorEmAbertoMes(@Body() data): string {
     return this.financeiroService.getMaiorValorEmAbertoMes(data);
   }
 }
