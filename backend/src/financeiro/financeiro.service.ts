@@ -20,38 +20,16 @@ export class FinanceiroService {
       // controle de saldo
       saldo += contrato.valorfinanciado;
 
-      // cria ou atualiza o saldo do mes
-      if (!tempo[`${mesContrato}/${anoContrato}`]) {
-        tempo[`${mesContrato}/${anoContrato}`] = {
-          saldoDevedor: saldo,
-        };
-      } else {
-        tempo[`${mesContrato}/${anoContrato}`].saldoDevedor += saldo;
-      }
+      this.atualizarSaldo(tempo, mesContrato, anoContrato, saldo);
 
-      // se a data de vencimento da primeira parcela for mais de 1 mes depois do inicio do contrato, é necessario colocar a divida nesse espaço de tempo
-      const mesesSemInteracao = differenceInMonths(
+      // verifica se o vencimento da primeira parcela é mais de 1 mes depois do inicio do contrato
+      const mesesSemInteracao = this.diferencaEntreDatas(
         new Date(contrato.data),
         new Date(contrato.parcelas[0].datavencimento),
       );
 
       if (mesesSemInteracao >= 2) {
-        for (let i = 1; i <= mesesSemInteracao - 1; i++) {
-          const novaData = new Date(addMonths(new Date(contrato.data), i));
-
-          const [anoNovaData, mesNovaData, diaNovaData] = novaData
-            .toISOString()
-            .split('T')[0]
-            .split('-');
-          if (tempo[`${mesNovaData}/${anoNovaData}`]) {
-            tempo[`${mesNovaData}/${anoNovaData}`].saldoDevedor +=
-              contrato.valorfinanciado;
-          } else {
-            tempo[`${mesNovaData}/${anoNovaData}`] = {
-              saldoDevedor: contrato.valorfinanciado,
-            };
-          }
-        }
+        this.adicionarMesesSemInteracao(tempo, contrato, mesesSemInteracao);
       }
 
       // calculo do pagamanento do contrato
@@ -60,20 +38,9 @@ export class FinanceiroService {
         const [anoVencimento, mesVencimento, diaVencimento] =
           parcela.datavencimento.split('-');
 
-        // se o pagamento for feito em outro mes ou não foi feito o pagamento
-        // apenas guarda o valor financiado restante no mes de vencimento
-        if (
-          !parcela.dataultimopagamento ||
-          new Date(parcela.dataultimopagamento).getMonth() >
-            new Date(parcela.datavencimento).getMonth()
-        ) {
-          if (tempo[`${mesVencimento}/${anoVencimento}`]) {
-            tempo[`${mesVencimento}/${anoVencimento}`].saldoDevedor += saldo;
-          } else {
-            tempo[`${mesVencimento}/${anoVencimento}`] = {
-              saldoDevedor: saldo,
-            };
-          }
+        // verifica se o pagamento está atrasado ou não foi feito
+        if (!parcela.dataultimopagamento || this.isPagamentoAtrasado(parcela)) {
+          this.atualizarSaldo(tempo, mesVencimento, anoVencimento, saldo);
 
           if (!parcela.dataultimopagamento) {
             return;
@@ -91,52 +58,100 @@ export class FinanceiroService {
           saldo = 0;
         }
 
-        // se não existir uma movimentação nesse mes, cria uma, se existir, apenas atualiza o valor
+        // se não existir uma movimentação nesse mes, cria uma, se existir, apenas atualiza o saldo
         if (!tempo[`${mesParcela}/${anoParcela}`]) {
           tempo[`${mesParcela}/${anoParcela}`] = {
             saldoDevedor: saldo,
           };
         } else {
           tempo[`${mesParcela}/${anoParcela}`].saldoDevedor = saldo;
-
-          if (tempo[`${mesParcela}/${anoParcela}`].saldoDevedor < 1e-10) {
-            tempo[`${mesParcela}/${anoParcela}`].saldoDevedor = 0;
-          }
         }
 
         return;
       });
     });
-    console.log(tempo);
 
-    function differenceInMonths(date1, date2) {
-      const year1 = date1.getFullYear();
-      const month1 = date1.getMonth();
-      const year2 = date2.getFullYear();
-      const month2 = date2.getMonth();
+    return JSON.stringify(this.obterMaiorSaldo(tempo));
+  }
 
-      return (year2 - year1) * 12 + (month2 - month1);
-    }
+  /**
+   * Calcula a diferença de MESES entre as datas
+   */
+  diferencaEntreDatas(date1: Date, date2: Date): number {
+    const year1 = date1.getFullYear();
+    const month1 = date1.getMonth();
+    const year2 = date2.getFullYear();
+    const month2 = date2.getMonth();
 
-    function addMonths(date, months) {
-      const d = new Date(date);
-      d.setMonth(d.getMonth() + months);
-      return d;
-    }
+    return (year2 - year1) * 12 + (month2 - month1);
+  }
 
+  /**
+   * Adiciona meses em uma data
+   */
+  adicionaMeses(date: Date, months: number): Date {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + months);
+    return d;
+  }
+
+  /**
+   * Verifica se o pagamento da parcela está atrasado
+   */
+  isPagamentoAtrasado(parcela): boolean {
+    return (
+      new Date(parcela.dataultimopagamento).getMonth() >
+      new Date(parcela.datavencimento).getMonth()
+    );
+  }
+
+  /**
+   * Busca o maior saldo que ja esteve em aberto
+   */
+  obterMaiorSaldo(tempo): { mes: string; total_aberto: number } {
     let maximoSaldoValor = -Infinity;
     let maximoSaldoData = '';
 
-    for (const meses in tempo) {
-      if (tempo[meses].saldoDevedor > maximoSaldoValor) {
-        maximoSaldoValor = tempo[meses].saldoDevedor;
-        maximoSaldoData = meses;
+    for (const mes in tempo) {
+      if (tempo[mes].saldoDevedor > maximoSaldoValor) {
+        maximoSaldoValor = tempo[mes].saldoDevedor;
+        maximoSaldoData = mes;
       }
     }
 
-    return JSON.stringify({
-      mes: maximoSaldoData,
-      total_aberto: maximoSaldoValor,
-    });
+    return { mes: maximoSaldoData, total_aberto: maximoSaldoValor };
+  }
+
+  /**
+   * Cria a posição do mês ou atualiza o valor se ja existir
+   */
+  atualizarSaldo(tempo, mes, ano, saldo) {
+    const chave = `${mes}/${ano}`;
+    if (!tempo[chave]) {
+      tempo[chave] = { saldoDevedor: saldo };
+    } else {
+      tempo[chave].saldoDevedor += saldo;
+    }
+  }
+
+  /**
+   * Verifica se o vencimento da primeira parcela é mais de 1 mes depois do inicio do contrato
+   * É necessario colocar a divida nesse espaço de tempo
+   */
+  adicionarMesesSemInteracao(tempo, contrato, mesesSemInteracao) {
+    for (let i = 1; i <= mesesSemInteracao - 1; i++) {
+      const novaData = this.adicionaMeses(new Date(contrato.data), i);
+      const [anoNovaData, mesNovaData] = novaData
+        .toISOString()
+        .split('T')[0]
+        .split('-');
+
+      this.atualizarSaldo(
+        tempo,
+        mesNovaData,
+        anoNovaData,
+        contrato.valorfinanciado,
+      );
+    }
   }
 }
