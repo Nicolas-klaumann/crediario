@@ -1,0 +1,14 @@
+# Para iniciar o projeto basta inserir o seguinte comando:
+docker-compose up --build
+
+# Detalhes do projeto
+o projeto conta com duas rotas no backend: 
+http://localhost:3000/financeiro/maior-valor-em-aberto -> busca o maior valor em aberto ja registrado
+http://localhost:3000/financeiro/valor-em-aberto -> busca o valor em aberto atual
+
+o frontend possui um design simples para atender os requisistos que foram pedidos
+o projeto possui duas ações no frontend:
+* Lista todos os contratos e parcelas em uma tabela
+* Faz um request para o backend encontrar o saldo em aberto de acordo com os contratos enviados
+
+obs: o projeto não possui banco de dados devido a falta de necessidade para atender o que foi solicitado
