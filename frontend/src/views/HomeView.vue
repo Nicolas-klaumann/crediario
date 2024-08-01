@@ -10,6 +10,7 @@
         <input type="file" class="form-control" id="inputGroupFile01" style="width: 82%;" @change="handleFileUpload">
       </div>
       <div class="card-content">
+        <CalcularEndividamento v-if="mostrarEndividamento" :jsonData="jsonData"/>
         <ListContratos v-if="mostrarContratos" :jsonData="jsonData"/>
       </div>
     </div>
@@ -18,16 +19,19 @@
 
 <script>
 import ListContratos from './../components/ListContratos.vue';
+import CalcularEndividamento from './../components/CalcularEndividamento.vue'
 
 export default {
   name: 'HomeView',
   components: {
     ListContratos,
+    CalcularEndividamento,
   },
   data() {
     return {
       jsonData: null,
-      mostrarContratos: false
+      mostrarContratos: false,
+      mostrarEndividamento: false
     };
   },
   methods: {
@@ -48,15 +52,13 @@ export default {
     detalharContratos() {
       if (this.jsonData) {
         this.mostrarContratos = true;
-        console.log("Detalhando contratos e parcelas", this.jsonData);
       } else {
         alert("Por favor, carregue um arquivo JSON primeiro.");
       }
     },
     calcularEndividamento() {
       if (this.jsonData) {
-        // Implemente a lógica para calcular o endividamento
-        console.log("Calculando endividamento", this.jsonData);
+        this.mostrarEndividamento = true
       } else {
         alert("Por favor, carregue um arquivo JSON primeiro.");
       }

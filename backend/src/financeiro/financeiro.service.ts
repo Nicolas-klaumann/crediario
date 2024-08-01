@@ -2,7 +2,31 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class FinanceiroService {
-  getMaiorValorEmAbertoMes(data): string {
+  getMaiorValorEmAbertoMes(data) {
+    const linhaTempo = this.getLinhaDoTempo(data);
+    return JSON.stringify(this.obterMaiorSaldo(linhaTempo));
+  }
+
+  getSaldoEmAberto(data) {
+    const linhaTempo = this.getLinhaDoTempo(data);
+
+    // Obter as chaves do objeto e ordená-las
+    const chaves = Object.keys(linhaTempo);
+    chaves.sort(
+      (a, b) =>
+        new Date(a.split('/').reverse().join('/')).getTime() -
+        new Date(b.split('/').reverse().join('/')).getTime(),
+    );
+
+    // Acessar o último elemento
+    const ultimaChave = chaves[chaves.length - 1];
+    const ultimoSaldoDevedor = linhaTempo[ultimaChave].saldoDevedor;
+    console.log(ultimoSaldoDevedor);
+
+    return JSON.stringify(ultimoSaldoDevedor);
+  }
+
+  getLinhaDoTempo(data): any {
     // ordena do mais antigo para o mais novo
     data.contratos.sort(
       (a, b) => new Date(a.data).getTime() - new Date(b.data).getTime(),
@@ -71,7 +95,7 @@ export class FinanceiroService {
       });
     });
 
-    return JSON.stringify(this.obterMaiorSaldo(tempo));
+    return tempo;
   }
 
   /**
