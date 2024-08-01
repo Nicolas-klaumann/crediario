@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>Saldo em aberto: {{ data }}</h1>
+    <h1>SALDO EM ABERTO: {{ data }}</h1>
   </div>
 </template>
 
@@ -17,7 +17,7 @@ export default {
   },
   data() {
     return {
-      contratos: this.jsonData,
+      contratos: this.jsonData, // Contratos inseridos
       data: null, // Armazena os dados retornados pela requisição
       error: null // Armazena qualquer erro que ocorra
     };
@@ -30,14 +30,19 @@ export default {
             headers: {
               'Content-Type': 'application/json'
             }
-          }); // Substitua com a URL da sua API
+        });
 
-        console.log(response);
-        this.data = response.data; // Armazena os dados retornados na propriedade `data`
+        this.data = this.formatValue(response.data);
       } catch (error) {
-        this.error = error; // Armazena o erro, se ocorrer
+        this.error = error;
         console.error('Erro ao buscar dados:', error);
       }
+    },
+    formatValue(value) {
+      return value.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
     }
   },
   mounted() {
@@ -47,5 +52,4 @@ export default {
 </script>
 
 <style scoped>
-/* Estilos podem ser adicionados aqui */
 </style>
