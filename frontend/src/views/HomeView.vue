@@ -4,14 +4,10 @@
       <div class="card-header">
         DETALHAMENTO DE FINANÇAS
       </div>
-      <div class="card-body">
-        <div class="input-group mb-3">
-          <input type="file" class="form-control" id="inputGroupFile01" @change="handleFileUpload">
-        </div>
-        <div style="text-align: left;">
-          <button class="btn btn-spacing" type="button" @click="detalharContratos">Listar Contratos</button>
-          <button class="btn btn-spacing" type="button" @click="calcularEndividamento">Calcular Endividamento</button>
-        </div>
+      <div class="card-body" style="display: flex;">
+        <button class="btn btn-spacing" type="button" @click="detalharContratos">Listar Contratos</button>
+        <button class="btn btn-spacing" type="button" @click="calcularEndividamento">Calcular Endividamento</button>
+        <input type="file" class="form-control" id="inputGroupFile01" style="width: 82%;" @change="handleFileUpload">
       </div>
       <div class="card-content">
         <ListContratos v-if="mostrarContratos" :jsonData="jsonData"/>
